@@ -3,6 +3,13 @@
 # ABC: Arbitrary Byte Collector  
 ABC is a package for Go which can act as either a standard HTTP downloader with resume capabilities or as an arbitrary byte collector to download only arbitrary portions of files by manipulating the HTTP Range header as needed. ABC can easily be imported into any Go project and be implemented as Go routines to download arbitrary portions of files concurrently. The reference implementation of ABC launches a single instance of ABC, but can also be easily scripted for concurrency.
 
+To import ABC into your project:  
+`go get github.com/ScriptTiger/abc`  
+Then just `import "github.com/ScriptTiger/abc"` and call abc.Download(...) to use. Please refer to the reference implementation for more details on how to integrate ABC into your project.  
+https://github.com/ScriptTiger/abc/blob/main/ref/ref.go
+
+# Reference Implementation
+
 Usage: `abc [options...] <url> <file>`
 
 Argument               | Description
