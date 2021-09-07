@@ -23,15 +23,15 @@ func help(err int) {
 
 func main() {
 
-	//Declare variables
-	var err error
-
-	//Declare and initialize flag pointers
-	urlRaw := new(string)
-	file := new(string)
-	byteRange := new(string)
-	timeout := new(time.Duration)
-	flags := new(int)
+	//Declarations
+	var (
+		urlRaw *string
+		file *string
+		byteRange *string
+		timeout *time.Duration
+		flags *int		
+		err error
+	)
 
 	//Display help and exit if not enough arguments
 	if len(os.Args) < 2 {help(-1)}
@@ -42,17 +42,18 @@ func main() {
 			switch strings.TrimPrefix(os.Args[i], "-") {
 				case "range":
 					i++
-					if *byteRange == "" {byteRange = &os.Args[i]
+					if byteRange == nil {byteRange = &os.Args[i]
 					} else {help(-2)}
 					continue
 				case "i":
 					i++
-					if *urlRaw == "" {urlRaw = &os.Args[i]
+					if urlRaw == nil {urlRaw = &os.Args[i]
 					} else {help(-2)}
 					continue
 				case "timeout":
 					i++
-					if *timeout == time.Second*0 {
+					if timeout == nil {
+						timeout = new(time.Duration)
 						*timeout, err = time.ParseDuration(os.Args[i])
 						if err != nil {
 							os.Stdout.WriteString(err.Error())
@@ -61,29 +62,31 @@ func main() {
 					} else {help(-2)}
 					continue
 				case "nodebug":
+					if flags == nil {flags = new(int)}
 					if 1&*flags == 0 {*flags += 1
 					} else {help(-2)}
 					continue
 				case "noprogress":
+					if flags == nil {flags = new(int)}
 					if 2&*flags == 0 {*flags += 2
 					} else {help(-2)}
 					continue
 				case "o":
 					i++
-					if *file == "" {file = &os.Args[i]
+					if file == nil {file = &os.Args[i]
 					} else {help(-2)}
 					continue
 				default:
 					help(-2)
 			}
-		} else if *urlRaw == "" {urlRaw = &os.Args[i]
-		} else if *file == "" {file = &os.Args[i]
+		} else if urlRaw == nil {urlRaw = &os.Args[i]
+		} else if file == nil {file = &os.Args[i]
 		} else {help(-2)}
 	}
 
 	err, totalSize, acceptRanges := abc.Download(urlRaw, file, byteRange, timeout, flags)
 	if err == nil {
-		if *file == "" {
+		if file == nil {
 			os.Stdout.WriteString(
 				"Content-Length = "+strconv.FormatInt(totalSize, 10)+
 				"\nAccept-Ranges = "+acceptRanges)

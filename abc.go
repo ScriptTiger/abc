@@ -32,9 +32,11 @@ func Download(urlRaw, file, byteRange *string, timeout *time.Duration, flags *in
 	)
 
 	//Conditional initializations
-	if *file == "" {noDownload = true}
-	if 1&*flags != 0 {noDebug = true}
-	if 2&*flags != 0 {noProgress = true}
+	if file == nil {noDownload = true}
+	if flags != nil {
+		if 1&*flags != 0 {noDebug = true}
+		if 2&*flags != 0 {noProgress = true}
+	}
 
 	//Function to handle errors
 	debug := func(err error) {
@@ -42,7 +44,7 @@ func Download(urlRaw, file, byteRange *string, timeout *time.Duration, flags *in
 	}
 
 	//Exit now if no URL given
-	if *urlRaw == "" {
+	if urlRaw == nil {
 		err = errors.New("No URL provided\n")
 		debug(err)
 		return
@@ -69,6 +71,7 @@ func Download(urlRaw, file, byteRange *string, timeout *time.Duration, flags *in
 	}
 
 	//Initialize HTTP client
+	if timeout == nil {timeout = new(time.Duration)}
 	client := &http.Client{Timeout: *timeout}
 
 	//Initialize HTTP request
@@ -119,7 +122,7 @@ func Download(urlRaw, file, byteRange *string, timeout *time.Duration, flags *in
 	}
 
 	//Set range header as needed if supplied by an argument
-	if acceptRanges == "bytes" && *byteRange != "" {
+	if acceptRanges == "bytes" && byteRange != nil {
 		request.Header.Set("Range", "bytes="+*byteRange)
 	}
 
@@ -127,7 +130,7 @@ func Download(urlRaw, file, byteRange *string, timeout *time.Duration, flags *in
 	canResume := func() (rsm bool) {
 		if existingSize > 0 &&
 		acceptRanges == "bytes" &&
-		*byteRange == "" {
+		byteRange == nil {
 			rsm = true
 		} else {rsm = false}
 		return
