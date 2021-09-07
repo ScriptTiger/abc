@@ -32,7 +32,6 @@ func Download(urlRaw, file, byteRange *string, timeout *time.Duration, flags *in
 	)
 
 	//Conditional initializations
-	if *timeout == time.Second*0 {*timeout = time.Minute}
 	if *file == "" {noDownload = true}
 	if 1&*flags != 0 {noDebug = true}
 	if 2&*flags != 0 {noProgress = true}
