@@ -21,7 +21,7 @@ Argument               | Description
  `-range <range>`      | Set Range header
  `-timeout <duration>` | Set connection timeout
 
-By default, if only a URL is given and no destination file, ABC will not download anything and just exit after returning any errors as well as the COntent-Length and Accept-Ranges headers. If both the URL and destination file are given, without any additional arguments, ABC will either create a new destination file if it doesn't exist already, append to the existing destination file if it does exist but is not complete, or delete the existing file if it does exist but the server does not support resume capabilities and create a new file. ABC gives you both enough information as well as flexibility to either easily implement your own additional functionality in Go or via a scripted solution using the included reference implementation.
+By default, if only a URL is given and no destination file, ABC will not download anything and just exit after returning any errors as well as the Content-Length and Accept-Ranges headers. If both the URL and destination file are given, without any additional arguments, ABC will either create a new destination file if it doesn't exist already, append to the existing destination file if it does exist but is not complete, or delete the existing file if it does exist but the server does not support resume capabilities and create a new file. ABC gives you both enough information as well as flexibility to either easily implement your own additional functionality in Go or via a scripted solution using the included reference implementation.
 
 # More About ScriptTiger
 
