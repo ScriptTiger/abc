@@ -228,7 +228,7 @@ func Download(urlRaw, file, byteRange *string, timeout *time.Duration, flags *in
 	}
 
 	//Display duration and exit
-	if !noDebug {os.Stdout.WriteString("\nDownload completed in "+time.Since(start).String())}
+	if !noDebug {os.Stdout.WriteString("\nDownload completed in "+time.Since(start).String()+"\n")}
 	err = nil
 	return
 }
