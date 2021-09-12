@@ -13,7 +13,9 @@ func help(err int) {
 	os.Stdout.WriteString(
 		"Usage: abc [options...] <url> <file>\n"+
 		" -i <URL>            Source URL\n"+
+		" -retry <number>     Number of retries\n"+
 		" -nodebug            Don't display debug messages, such as errors\n"+
+		" -nokeep             If file already exists, delete and download new\n"+
 		" -noprogress         Don't display progress\n"+
 		" -o <file>           Destination file\n"+
 		" -range <range>      Set Range header\n"+
@@ -29,7 +31,8 @@ func main() {
 		file *string
 		byteRange *string
 		timeout *time.Duration
-		flags *int		
+		retry *int
+		flags *int
 		err error
 	)
 
@@ -70,10 +73,22 @@ func main() {
 					if flags == nil {flags = new(int)}
 					if 2&*flags == 0 {*flags += 2
 					} else {help(-2)}
+				case "nokeep":
+					if flags == nil {flags = new(int)}
+					if 4&*flags == 0 {*flags += 4
+					} else {help(-2)}
 					continue
 				case "o":
 					i++
 					if file == nil {file = &os.Args[i]
+					} else {help(-2)}
+					continue
+				case "retry":
+					i++
+					if retry == nil {
+						retry = new(int)
+						*retry, err = strconv.Atoi(os.Args[i])
+						if err != nil {help(-2)}
 					} else {help(-2)}
 					continue
 				default:
@@ -84,13 +99,13 @@ func main() {
 		} else {help(-2)}
 	}
 
-	err, totalSize, acceptRanges := abc.Download(urlRaw, file, byteRange, timeout, flags)
+	err, totalSize, acceptRanges := abc.Download(urlRaw, file, byteRange, timeout, retry, flags)
 	if err == nil {
 		if file == nil {
 			os.Stdout.WriteString(
 				"Content-Length = "+strconv.FormatInt(totalSize, 10)+
 				"\nAccept-Ranges = "+acceptRanges)
 		}
-	} else {os.Exit(-4)}
+	} else {os.Exit(1)}
 	os.Exit(0)
 }

@@ -1,10 +1,10 @@
 package abc
 
+//Imports
 import (
 	"errors"
 	"fmt"
 	"io"
-	"io/fs"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -12,62 +12,128 @@ import (
 	"time"
 )
 
-func Download(urlRaw, file, byteRange *string, timeout *time.Duration, flags *int) (err error, totalSize int64, acceptRanges string) {
+//Declarations
+var (
+	//Declare flags
+	noDebug bool
+	noProgress bool
+	noKeep bool
+	noDownload bool
 
-	//Declarations
-	var (
-		//Declare flags
-		noDebug bool
-		noProgress bool
-		noDownload bool
+	//Declare common variables
+	start time.Time
+	fileExists bool
+	existingSize int64
+	totalSizeStr string
+	fileFlags int
+	complete chan bool
+	retry int
+	response *http.Response
+	oFile *os.File
+)
 
-		//Declare common variables
-		fileInfo fs.FileInfo
-		start time.Time
-		existingSize int64
-		totalSizeStr string
-		fileExists bool
-		fileFlags int
-		complete chan bool
-	)
+//Display errors
+func debug(err error) {
+	if !noDebug {os.Stdout.WriteString("\n"+err.Error()+"\n")}
+}
+
+//Evaluate to retry or not
+func canRetry(retryMax *int) (retryBool bool) {
+	if retryMax != nil && *retryMax == retry {return}
+	retry++
+	return true
+}
+
+//Check if a download should resume
+func canResume(acceptRanges string, byteRange *string) (rsm bool) {
+	if existingSize > 0 &&
+	acceptRanges == "bytes" &&
+	byteRange == nil {return true}
+	return
+}
+
+//Calculate and display progress
+func printProgress(totalSize, currentSize, lastSize int64) {
+	clearLine := "\r                                                                               "
+	if totalSize > 0 {
+		fmt.Printf(clearLine+"\r%.0f", (float64(currentSize)/float64(totalSize)*100))
+	} else {
+		os.Stdout.WriteString(clearLine+"\r--")
+	}
+	os.Stdout.WriteString("% | "+strconv.FormatInt(currentSize, 10)+" bytes of "+totalSizeStr+" | "+strconv.FormatInt((currentSize-lastSize), 10)+" bytes per second")
+}
+
+//Continue to refresh progress until download is complete
+func progress(file *string, totalSize int64) {
+	fileInfo, _ := os.Stat(*file)
+	currentSize := fileInfo.Size()
+	lastSize := currentSize
+	for {
+		select {
+			case <-complete:
+				printProgress(totalSize, currentSize, lastSize)
+				complete <- true
+				return
+			default:
+				printProgress(totalSize, currentSize, lastSize)
+				time.Sleep(time.Second)
+				lastSize = currentSize
+				fileInfo, _ = os.Stat(*file)
+				currentSize = fileInfo.Size()
+		}
+	}
+}
+
+//Signal and wait for go routine to print one last progress and terminate
+func syncProgress() {
+	if !noProgress {
+		complete <- true
+		<-complete
+	}
+}
+
+func filePrep (file *string) {
+	//Check if file already exists or not
+	fileInfo, err := os.Stat(*file)
+	if err == nil {
+		if fileInfo.IsDir() {
+			err = errors.New("A directory with that name already exists")
+			debug(err)
+			return
+		}
+		if noKeep {
+			err = os.Remove(*file)
+			if err != nil {
+				debug(err)
+				return
+			}
+		} else {
+			fileExists = true
+			existingSize = fileInfo.Size()
+		}
+	}
+	//Create directory structure as needed
+	os.MkdirAll(filepath.Dir(*file), 644)
+	return
+}
+
+
+//Public ABC Download function
+func Download(urlRaw, file, byteRange *string, timeout *time.Duration, retryMax, flags *int) (err error, totalSize int64, acceptRanges string) {
 
 	//Conditional initializations
 	if file == nil {noDownload = true}
 	if flags != nil {
 		if 1&*flags != 0 {noDebug = true}
 		if 2&*flags != 0 {noProgress = true}
-	}
-
-	//Function to handle errors
-	debug := func(err error) {
-		if !noDebug {os.Stdout.WriteString("\n"+err.Error()+"\n")}
+		if 4&*flags != 0 {noKeep = true}
 	}
 
 	//Exit now if no URL given
 	if urlRaw == nil {
-		err = errors.New("No URL provided\n")
+		err = errors.New("No URL provided")
 		debug(err)
 		return
-	}
-
-	if !noDownload {
-
-
-		if !noDebug {os.Stdout.WriteString("Downloading "+*urlRaw+" to "+*file+"...\n")}
-
-		//Check if file already exists or not
-		fileInfo, err = os.Stat(*file)
-		if err == nil {
-			if fileInfo.IsDir() {
-				err = errors.New("A directory with that name already exists\n")
-				debug(err)
-				return
-			}
-			fileExists = true
-			existingSize = fileInfo.Size()
-		}
-		//Create directory structure as needed
-		os.MkdirAll(filepath.Dir(*file), 644)
 	}
 
 	//Initialize HTTP client
@@ -86,34 +152,46 @@ func Download(urlRaw, file, byteRange *string, timeout *time.Duration, flags *in
 	request.Header.Set("Connection","Keep-Alive")
 	request.Header.Set("User-Agent","Mozilla/5.0")
 
-	if !noDownload {
-		//Record start time
-		start = time.Now()
-	}
+	for {
+		if !noDownload {
+			if !noDebug {
+				if retry == 0 {
+					os.Stdout.WriteString("Downloading "+*urlRaw+" to "+*file+"...\n")
+				} else {os.Stdout.WriteString("Retry "+strconv.Itoa(retry)+"...\n")}
+			}
 
-	//Request for response headers
-	headers, err := client.Head(*urlRaw)
-	if err != nil {
-		debug(err)
-		return
+			//Check and prepare file
+			filePrep(file)
+
+			//Record start time
+			if retry == 0 {start = time.Now()}
+		}
+		//Request for response headers
+		response, err = client.Head(*urlRaw)
+		if err != nil {
+			if canRetry(retryMax) {continue}
+			debug(err)
+			return
+		}
+		defer response.Body.Close()
+		break
 	}
-	defer headers.Body.Close()
 
 	//Set size if available
-	totalSizeStr = headers.Header.Get("Content-Length")
+	totalSizeStr = response.Header.Get("Content-Length")
 	if totalSizeStr != "" {
 		totalSize, err = strconv.ParseInt(totalSizeStr, 10, 64)
-		if err != nil {
+		if err == nil {
 			if totalSize > 0 && totalSize == existingSize {
 				if !noDebug {os.Stdout.WriteString("The download was already completed previously\n")}
 				err = nil
 				return
 			}
-		}
+		} else {totalSizeStr = "?"}
 	} else {totalSizeStr = "?"}
 
 	//Grab acceptRanges
-	acceptRanges = headers.Header.Get("Accept-Ranges")
+	acceptRanges = response.Header.Get("Accept-Ranges")
 
 	//Return now if noDownload
 	if noDownload {
@@ -122,112 +200,105 @@ func Download(urlRaw, file, byteRange *string, timeout *time.Duration, flags *in
 	}
 
 	//Set range header as needed if supplied by an argument
-	if acceptRanges == "bytes" && byteRange != nil {
-		request.Header.Set("Range", "bytes="+*byteRange)
-	}
-
-	//Function to check if a download should resume
-	canResume := func() (rsm bool) {
-		if existingSize > 0 &&
-		acceptRanges == "bytes" &&
-		byteRange == nil {
-			rsm = true
-		} else {rsm = false}
-		return
-	}
-
-	//Set flags for creating/opening file
-	if fileExists {
-		if canResume() {
-			fileFlags = os.O_APPEND | os.O_WRONLY
-		} else {
+	if acceptRanges == "bytes" {
+		if byteRange != nil {
+			request.Header.Set("Range", "bytes="+*byteRange)
+		}
+	} else {
+		if fileExists {
 			err = os.Remove(*file)
 			if err != nil {
 				debug(err)
 				return
 			}
 			fileExists = false
-			fileFlags = os.O_CREATE | os.O_WRONLY
 		}
-	} else {fileFlags = os.O_CREATE | os.O_WRONLY}
-
-	//Initialize oFile
-	oFile, err := os.OpenFile(*file, fileFlags, 644)
-	if err != nil {
-		debug(err)
-		return
+		noKeep = true
 	}
 
-	//If resuming, seek to the end of the existing file and set Range header to resume at next byte
-	if canResume() {
-		_, err = oFile.Seek(0, os.SEEK_END)
+	for {
+		if retry > 0 {
+			if !noDebug {
+				if !noProgress {os.Stdout.WriteString("\n")}
+				os.Stdout.WriteString("Retry "+strconv.Itoa(retry)+"...\n")
+			}
+			oFile.Close()
+			filePrep(file)
+		}
+
+		//Set flags for creating/opening file
+		if fileExists {
+			if canResume(acceptRanges, byteRange) {
+				fileFlags = os.O_APPEND | os.O_WRONLY
+			} else {
+				err = os.Remove(*file)
+				if err != nil {
+					debug(err)
+					return
+				}
+				fileExists = false
+				fileFlags = os.O_CREATE | os.O_WRONLY
+			}
+		} else {fileFlags = os.O_CREATE | os.O_WRONLY}
+
+		//Initialize oFile
+		oFile, err = os.OpenFile(*file, fileFlags, 644)
 		if err != nil {
 			debug(err)
 			return
 		}
-		defer oFile.Close()
-		request.Header.Set("Range", "bytes="+strconv.FormatInt(existingSize, 10)+"-")
-	}
 
-	//Print progress as needed
-	if !noProgress {
-
-		//Initialize signaling channel
-		complete = make(chan bool)
-
-		//Go routine to print progress
-		go func() {
-			clearLine := "\r                                                                               "
-			fileInfo, _ = os.Stat(*file)
-			currentSize := fileInfo.Size()
-			lastSize := currentSize
-			printProgress := func() {
-				if totalSize > 0 {
-					fmt.Printf(clearLine+"\r%.0f", (float64(currentSize)/float64(totalSize)*100))
-				} else {
-					os.Stdout.WriteString(clearLine+"\r--")
-				}
-				os.Stdout.WriteString("% | "+strconv.FormatInt(currentSize, 10)+" bytes of "+totalSizeStr+" | "+strconv.FormatInt((currentSize-lastSize), 10)+" bytes per second")
+		//If resuming, seek to the end of the existing file and set Range header to resume at next byte
+		if canResume(acceptRanges, byteRange) {
+			_, err = oFile.Seek(0, os.SEEK_END)
+			if err != nil {
+				debug(err)
+				return
 			}
-			for {
-				select {
-					case <-complete:
-						printProgress()
-						complete <- true
-						return
-					default:
-						printProgress()
-						time.Sleep(time.Second)
-						lastSize = currentSize
-						fileInfo, _ = os.Stat(*file)
-						currentSize = fileInfo.Size()
-				}
+			defer oFile.Close()
+			request.Header.Set("Range", "bytes="+strconv.FormatInt(existingSize, 10)+"-")
+		}
+
+		//Print progress as needed
+		if !noProgress {
+
+			//Initialize signaling channel
+			complete = make(chan bool)
+
+			//Start Go routine to print progress
+			go progress(file, totalSize)
+		}
+
+		//Request for content
+		response, err = client.Do(request)
+		if err != nil {
+			syncProgress()
+			if canRetry(retryMax) {
+				defer response.Body.Close()
+				oFile.Close()
+				continue
 			}
-		}()
+			debug(err)
+			return
+		}
+		defer response.Body.Close()
+
+		//Write content to file
+		_, err = io.Copy(oFile, response.Body)
+		if err != nil {
+			syncProgress()
+			if canRetry(retryMax) {
+				oFile.Close()
+				continue
+			}
+			debug(err)
+			return
+		}
+		break
 	}
 
-	//Request for content
-	response, err := client.Do(request)
-	if err != nil {
-		debug(err)
-		return
-	}
-	defer response.Body.Close()
-
-	//Write content to file
-	_, err = io.Copy(oFile, response.Body)
-	if err != nil {
-		debug(err)
-		return
-	}
-
-	//Signal and wait for go routine to print last progress and terminate
-	if !noProgress {
-		complete <- true
-		<-complete
-	}
-
-	//Display duration and exit
+	//Terminate progress if needed, display duration, and exit
+	syncProgress()
 	if !noDebug {os.Stdout.WriteString("\nDownload completed in "+time.Since(start).String()+"\n")}
 	err = nil
 	return

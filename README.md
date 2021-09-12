@@ -15,7 +15,9 @@ Usage: `abc [options...] <url> <file>`
 Argument               | Description
 -----------------------|--------------------------------------------------------------------------------------------------------
  `-i <URL>`            | Source URL
+ `-retry <number>`     | Number of retries
  `-nodebug`            | Don't display debug messages, such as errors
+ `-nokeep`             | If file already exists, delete and download new
  `-noprogress`         | Don't display progress
  `-o <file>`           | Destination file
  `-range <range>`      | Set Range header
