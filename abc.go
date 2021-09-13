@@ -101,7 +101,7 @@ func filePrep (file *string) {
 			debug(err)
 			return
 		}
-		if noKeep {
+		if noKeep && retry == 0 {
 			err = os.Remove(*file)
 			if err != nil {
 				debug(err)
@@ -213,7 +213,6 @@ func Download(urlRaw, file, byteRange *string, timeout *time.Duration, retryMax,
 			}
 			fileExists = false
 		}
-		noKeep = true
 	}
 
 	for {
