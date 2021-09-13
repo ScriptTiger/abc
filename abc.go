@@ -33,7 +33,7 @@ var (
 )
 
 //Display errors
-func debug(err error) {
+func debug (err error) {
 	if !noDebug {os.Stdout.WriteString("\n"+err.Error()+"\n")}
 }
 
@@ -45,7 +45,7 @@ func canRetry(retryMax *int) (retryBool bool) {
 }
 
 //Check if a download should resume
-func canResume(acceptRanges string, byteRange *string) (rsm bool) {
+func canResume (acceptRanges string, byteRange *string) (rsm bool) {
 	if existingSize > 0 &&
 	acceptRanges == "bytes" &&
 	byteRange == nil {return true}
@@ -53,7 +53,7 @@ func canResume(acceptRanges string, byteRange *string) (rsm bool) {
 }
 
 //Calculate and display progress
-func printProgress(totalSize, currentSize, lastSize int64) {
+func printProgress (totalSize, currentSize, lastSize int64) {
 	clearLine := "\r                                                                               "
 	if totalSize > 0 {
 		fmt.Printf(clearLine+"\r%.0f", (float64(currentSize)/float64(totalSize)*100))
@@ -64,7 +64,7 @@ func printProgress(totalSize, currentSize, lastSize int64) {
 }
 
 //Continue to refresh progress until download is complete
-func progress(file *string, totalSize int64) {
+func progress (file *string, totalSize int64) {
 	fileInfo, _ := os.Stat(*file)
 	currentSize := fileInfo.Size()
 	lastSize := currentSize
@@ -85,33 +85,29 @@ func progress(file *string, totalSize int64) {
 }
 
 //Signal and wait for go routine to print one last progress and terminate
-func syncProgress() {
+func syncProgress () {
 	if !noProgress {
 		complete <- true
 		<-complete
 	}
 }
 
-func filePrep (file *string) {
+func filePrep (file *string) (err error) {
 	//Check if file already exists or not
 	fileInfo, err := os.Stat(*file)
 	if err == nil {
 		if fileInfo.IsDir() {
 			err = errors.New("A directory with that name already exists")
-			debug(err)
 			return
 		}
 		if noKeep && retry == 0 {
 			err = os.Remove(*file)
-			if err != nil {
-				debug(err)
-				return
-			}
+			if err != nil {return}
 		} else {
 			fileExists = true
 			existingSize = fileInfo.Size()
 		}
-	}
+	} else {err = nil}
 	//Create directory structure as needed
 	os.MkdirAll(filepath.Dir(*file), 644)
 	return
@@ -119,7 +115,7 @@ func filePrep (file *string) {
 
 
 //Public ABC Download function
-func Download(urlRaw, file, byteRange *string, timeout *time.Duration, retryMax, flags *int) (err error, totalSize int64, acceptRanges string) {
+func Download (urlRaw, file, byteRange *string, timeout *time.Duration, retryMax, flags *int) (err error, totalSize int64, acceptRanges string) {
 
 	//Conditional initializations
 	if file == nil {noDownload = true}
@@ -161,7 +157,11 @@ func Download(urlRaw, file, byteRange *string, timeout *time.Duration, retryMax,
 			}
 
 			//Check and prepare file
-			filePrep(file)
+			err = filePrep(file)
+			if err != nil {
+				debug(err)
+				return
+			}
 
 			//Record start time
 			if retry == 0 {start = time.Now()}
@@ -222,7 +222,11 @@ func Download(urlRaw, file, byteRange *string, timeout *time.Duration, retryMax,
 				os.Stdout.WriteString("Retry "+strconv.Itoa(retry)+"...\n")
 			}
 			oFile.Close()
-			filePrep(file)
+			err = filePrep(file)
+			if err != nil {
+				debug(err)
+				return
+			}
 		}
 
 		//Set flags for creating/opening file
