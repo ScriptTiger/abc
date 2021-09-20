@@ -14,6 +14,7 @@ Usage: `abc [options...] <url> <file>`
 
 Argument               | Description
 -----------------------|--------------------------------------------------------------------------------------------------------
+ `-agent <user-agent>` | Set User-Agent header
  `-i <URL>`            | Source URL
  `-retry <number>`     | Number of retries
  `-nodebug`            | Don't display debug messages, such as errors

@@ -12,6 +12,7 @@ import (
 func help(err int) {
 	os.Stdout.WriteString(
 		"Usage: abc [options...] <url> <file>\n"+
+		" -agent <user-agent> Set User-Agent header\n"+
 		" -i <URL>            Source URL\n"+
 		" -retry <number>     Number of retries\n"+
 		" -nodebug            Don't display debug messages, such as errors\n"+
@@ -30,6 +31,7 @@ func main() {
 		urlRaw *string
 		file *string
 		byteRange *string
+		agent *string
 		timeout *time.Duration
 		retry *int
 		flags *int
@@ -46,6 +48,11 @@ func main() {
 				case "range":
 					i++
 					if byteRange == nil {byteRange = &os.Args[i]
+					} else {help(-2)}
+					continue
+				case "agent":
+					i++
+					if agent == nil {agent = &os.Args[i]
 					} else {help(-2)}
 					continue
 				case "i":
@@ -99,7 +106,7 @@ func main() {
 		} else {help(-2)}
 	}
 
-	err, totalSize, acceptRanges := abc.Download(urlRaw, file, byteRange, timeout, retry, flags)
+	err, totalSize, acceptRanges := abc.Download(urlRaw, file, byteRange, agent, timeout, retry, flags)
 	if err == nil {
 		if file == nil {
 			os.Stdout.WriteString(

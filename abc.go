@@ -115,7 +115,7 @@ func filePrep (file *string) (err error) {
 
 
 //Public ABC Download function
-func Download (urlRaw, file, byteRange *string, timeout *time.Duration, retryMax, flags *int) (err error, totalSize int64, acceptRanges string) {
+func Download (urlRaw, file, byteRange, agent *string, timeout *time.Duration, retryMax, flags *int) (err error, totalSize int64, acceptRanges string) {
 
 	//Conditional initializations
 	if file == nil {noDownload = true}
@@ -146,7 +146,7 @@ func Download (urlRaw, file, byteRange *string, timeout *time.Duration, retryMax
 	//Set HTTP request headers
 	request.Header.Set("Accept-Language","en-US")
 	request.Header.Set("Connection","Keep-Alive")
-	request.Header.Set("User-Agent","Mozilla/5.0")
+	if agent != nil {request.Header.Set("User-Agent",*agent)}
 
 	for {
 		if !noDownload {
