@@ -98,11 +98,15 @@ func filePrep (file *string) (err error) {
 	if err == nil {
 		if fileInfo.IsDir() {
 			err = errors.New("A directory with that name already exists")
+			debug(err)
 			return
 		}
 		if noKeep && retry == 0 {
 			err = os.Remove(*file)
-			if err != nil {return}
+			if err != nil {
+				debug(err)
+				return
+			}
 		} else {
 			fileExists = true
 			existingSize = fileInfo.Size()
@@ -182,10 +186,16 @@ func Download (urlRaw, file, byteRange, agent *string, timeout *time.Duration, r
 	if totalSizeStr != "" {
 		totalSize, err = strconv.ParseInt(totalSizeStr, 10, 64)
 		if err == nil {
-			if totalSize > 0 && totalSize == existingSize {
-				if !noDebug {os.Stdout.WriteString("The download was already completed previously\n")}
-				err = nil
-				return
+			if totalSize > 0 {
+				if totalSize == existingSize {
+					if !noDebug {os.Stdout.WriteString("The download was already completed previously\n")}
+					err = nil
+					return
+				} else if existingSize > totalSize {
+					err = errors.New("Destination file larger than content length")
+					debug(err)
+					return
+				}
 			}
 		} else {totalSizeStr = "?"}
 	} else {totalSizeStr = "?"}
