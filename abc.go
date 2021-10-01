@@ -231,7 +231,7 @@ func Download (urlRaw, file, byteRange, agent *string, timeout *time.Duration, r
 				if !noProgress {os.Stdout.WriteString("\n")}
 				os.Stdout.WriteString("Retry "+strconv.Itoa(retry)+"...\n")
 			}
-			oFile.Close()
+			defer oFile.Close()
 			err = filePrep(file)
 			if err != nil {
 				debug(err)
@@ -288,7 +288,7 @@ func Download (urlRaw, file, byteRange, agent *string, timeout *time.Duration, r
 			syncProgress()
 			if canRetry(retryMax) {
 				defer response.Body.Close()
-				oFile.Close()
+				defer oFile.Close()
 				continue
 			}
 			debug(err)
@@ -301,7 +301,7 @@ func Download (urlRaw, file, byteRange, agent *string, timeout *time.Duration, r
 		if err != nil {
 			syncProgress()
 			if canRetry(retryMax) {
-				oFile.Close()
+				defer oFile.Close()
 				continue
 			}
 			debug(err)
