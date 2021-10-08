@@ -25,6 +25,7 @@ var (
 	fileExists bool
 	existingSize int64
 	totalSizeStr string
+	refTotalSize int64
 	fileFlags int
 	complete chan bool
 	retry int
@@ -117,6 +118,34 @@ func filePrep (file *string) (err error) {
 	return
 }
 
+func requestHeaders (urlRaw *string, client *http.Client) (totalSize int64, acceptRanges string, err error) {
+	//Request for response headers
+	response, err = client.Head(*urlRaw)
+	if err != nil {return}
+	defer response.Body.Close()
+
+	//Set size if available
+	totalSizeStr = response.Header.Get("Content-Length")
+	if totalSizeStr != "" {
+		totalSize, err = strconv.ParseInt(totalSizeStr, 10, 64)
+		if err == nil {
+			if totalSize > 0 {
+				if totalSize == existingSize {
+					err = errors.New("The download was already completed previously")
+					return
+				} else if existingSize > totalSize {
+					err = errors.New("Destination file larger than content length")
+					return
+				}
+			}
+		} else {totalSizeStr = "?"}
+	} else {totalSizeStr = "?"}
+
+	//Grab acceptRanges
+	acceptRanges = response.Header.Get("Accept-Ranges")
+
+	return
+}
 
 //Public ABC Download function
 func Download (urlRaw, file, byteRange, agent *string, timeout *time.Duration, retryMax, flags *int) (err error, totalSize int64, acceptRanges string) {
@@ -171,37 +200,17 @@ func Download (urlRaw, file, byteRange, agent *string, timeout *time.Duration, r
 			if retry == 0 {start = time.Now()}
 		}
 		//Request for response headers
-		response, err = client.Head(*urlRaw)
+		totalSize, acceptRanges, err = requestHeaders(urlRaw, client)
 		if err != nil {
-			if canRetry(retryMax) {continue}
+			if err.Error() != "The download was already completed previously" && canRetry(retryMax) {continue}
 			debug(err)
 			return
 		}
-		defer response.Body.Close()
 		break
 	}
 
-	//Set size if available
-	totalSizeStr = response.Header.Get("Content-Length")
-	if totalSizeStr != "" {
-		totalSize, err = strconv.ParseInt(totalSizeStr, 10, 64)
-		if err == nil {
-			if totalSize > 0 {
-				if totalSize == existingSize {
-					if !noDebug {os.Stdout.WriteString("The download was already completed previously\n")}
-					err = nil
-					return
-				} else if existingSize > totalSize {
-					err = errors.New("Destination file larger than content length")
-					debug(err)
-					return
-				}
-			}
-		} else {totalSizeStr = "?"}
-	} else {totalSizeStr = "?"}
-
-	//Grab acceptRanges
-	acceptRanges = response.Header.Get("Accept-Ranges")
+	//Remember original totalSize for reference in case it changes later
+	refTotalSize = totalSize
 
 	//Return now if noDownload
 	if noDownload {
@@ -231,7 +240,21 @@ func Download (urlRaw, file, byteRange, agent *string, timeout *time.Duration, r
 				if !noProgress {os.Stdout.WriteString("\n")}
 				os.Stdout.WriteString("Retry "+strconv.Itoa(retry)+"...\n")
 			}
+
 			defer oFile.Close()
+
+			totalSize, acceptRanges, err = requestHeaders(urlRaw, client)
+			if err != nil {
+				debug(err)
+				return
+			}
+
+			if refTotalSize != totalSize {
+				err = errors.New("The Content-Length header has changed")
+				debug(err)
+				return
+			}
+
 			err = filePrep(file)
 			if err != nil {
 				debug(err)
