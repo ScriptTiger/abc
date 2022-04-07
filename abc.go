@@ -122,7 +122,6 @@ func requestHeaders (urlRaw *string, client *http.Client) (totalSize int64, acce
 	//Request for response headers
 	response, err = client.Head(*urlRaw)
 	if err != nil {return}
-	defer response.Body.Close()
 
 	//Set size if available
 	totalSizeStr = response.Header.Get("Content-Length")
@@ -143,6 +142,8 @@ func requestHeaders (urlRaw *string, client *http.Client) (totalSize int64, acce
 
 	//Grab acceptRanges
 	acceptRanges = response.Header.Get("Accept-Ranges")
+
+	response.Body.Close()
 
 	return
 }
@@ -241,7 +242,7 @@ func Download (urlRaw, file, byteRange, agent *string, timeout *time.Duration, r
 				os.Stdout.WriteString("Retry "+strconv.Itoa(retry)+"...\n")
 			}
 
-			defer oFile.Close()
+			oFile.Close()
 
 			totalSize, acceptRanges, err = requestHeaders(urlRaw, client)
 			if err != nil {
@@ -291,7 +292,6 @@ func Download (urlRaw, file, byteRange, agent *string, timeout *time.Duration, r
 				debug(err)
 				return
 			}
-			defer oFile.Close()
 			request.Header.Set("Range", "bytes="+strconv.FormatInt(existingSize, 10)+"-")
 		}
 
@@ -310,26 +310,30 @@ func Download (urlRaw, file, byteRange, agent *string, timeout *time.Duration, r
 		if err != nil {
 			syncProgress()
 			if canRetry(retryMax) {
-				defer response.Body.Close()
-				defer oFile.Close()
+				response.Body.Close()
+				oFile.Close()
 				continue
 			}
 			debug(err)
 			return
 		}
-		defer response.Body.Close()
 
 		//Write content to file
 		_, err = io.Copy(oFile, response.Body)
 		if err != nil {
 			syncProgress()
 			if canRetry(retryMax) {
-				defer oFile.Close()
+				oFile.Close()
 				continue
 			}
 			debug(err)
 			return
 		}
+
+		// Close file and client response body
+		oFile.Close()
+		response.Body.Close()
+
 		break
 	}
 
