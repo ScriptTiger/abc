@@ -243,6 +243,7 @@ func Download (urlRaw, file, byteRange, agent *string, timeout *time.Duration, r
 			}
 
 			oFile.Close()
+			response.Body.Close()
 
 			totalSize, acceptRanges, err = requestHeaders(urlRaw, client)
 			if err != nil {
@@ -309,11 +310,7 @@ func Download (urlRaw, file, byteRange, agent *string, timeout *time.Duration, r
 		response, err = client.Do(request)
 		if err != nil {
 			syncProgress()
-			if canRetry(retryMax) {
-				response.Body.Close()
-				oFile.Close()
-				continue
-			}
+			if canRetry(retryMax) {continue}
 			debug(err)
 			return
 		}
@@ -322,10 +319,7 @@ func Download (urlRaw, file, byteRange, agent *string, timeout *time.Duration, r
 		_, err = io.Copy(oFile, response.Body)
 		if err != nil {
 			syncProgress()
-			if canRetry(retryMax) {
-				oFile.Close()
-				continue
-			}
+			if canRetry(retryMax) {continue}
 			debug(err)
 			return
 		}
