@@ -80,6 +80,7 @@ func main() {
 					if flags == nil {flags = new(int)}
 					if 2&*flags == 0 {*flags += 2
 					} else {help(-2)}
+					continue
 				case "nokeep":
 					if flags == nil {flags = new(int)}
 					if 4&*flags == 0 {*flags += 4

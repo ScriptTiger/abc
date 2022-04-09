@@ -35,7 +35,7 @@ var (
 )
 
 //Display errors
-func debug (err error) {
+func debug(err error) {
 	if !noDebug {os.Stdout.WriteString("\n"+err.Error()+"\n")}
 }
 
@@ -47,7 +47,7 @@ func canRetry(retryMax *int) (retryBool bool) {
 }
 
 //Check if a download should resume
-func canResume (acceptRanges string, byteRange *string) (rsm bool) {
+func canResume(acceptRanges string, byteRange *string) (rsm bool) {
 	if existingSize > 0 &&
 	acceptRanges == "bytes" &&
 	byteRange == nil {return true}
@@ -55,7 +55,7 @@ func canResume (acceptRanges string, byteRange *string) (rsm bool) {
 }
 
 //Calculate and display progress
-func printProgress (totalSize, currentSize, lastSize int64) {
+func printProgress(totalSize, currentSize, lastSize int64) {
 	clearLine := "\r                                                                               "
 	if totalSize > 0 {
 		fmt.Printf(clearLine+"\r%.0f", (float64(currentSize)/float64(totalSize)*100))
@@ -66,7 +66,7 @@ func printProgress (totalSize, currentSize, lastSize int64) {
 }
 
 //Continue to refresh progress until download is complete
-func progress (file *string, totalSize int64) {
+func progress(file *string, totalSize int64) {
 	fileInfo, _ := os.Stat(*file)
 	currentSize := fileInfo.Size()
 	lastSize := currentSize
@@ -87,14 +87,14 @@ func progress (file *string, totalSize int64) {
 }
 
 //Signal and wait for go routine to print one last progress and terminate
-func syncProgress () {
+func syncProgress() {
 	if !noProgress {
 		complete <- true
 		<-complete
 	}
 }
 
-func filePrep (file *string) (err error) {
+func filePrep(file *string) (err error) {
 	//Check if file already exists or not
 	fileInfo, err := os.Stat(*file)
 	if err == nil {
@@ -119,7 +119,7 @@ func filePrep (file *string) (err error) {
 	return
 }
 
-func requestHeaders (urlRaw *string, client *http.Client) (totalSize int64, acceptRanges string, err error) {
+func requestHeaders(urlRaw *string, client *http.Client) (totalSize int64, acceptRanges string, err error) {
 	//Request for response headers
 	response, err = client.Head(*urlRaw)
 	if err != nil {return}
@@ -149,13 +149,13 @@ func requestHeaders (urlRaw *string, client *http.Client) (totalSize int64, acce
 	return
 }
 
-func retrySleep () {
+func retrySleep() {
 	time.Sleep(retryTimer)
 	if retryTimer.Minutes() < 5 {retryTimer *= 2}
 }
 
 //Public ABC Download function
-func Download (urlRaw, file, byteRange, agent *string, timeout *time.Duration, retryMax, flags *int) (err error, totalSize int64, acceptRanges string) {
+func Download(urlRaw, file, byteRange, agent *string, timeout *time.Duration, retryMax, flags *int) (err error, totalSize int64, acceptRanges string) {
 
 	//Conditional initializations
 	if file == nil {noDownload = true}
