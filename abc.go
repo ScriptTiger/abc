@@ -28,7 +28,7 @@ var (
 	refTotalSize int64
 	fileFlags int
 	complete chan bool
-	retry int
+	retry uint
 	response *http.Response
 	oFile *os.File
 	retryTimer time.Duration
@@ -40,7 +40,7 @@ func debug(err error) {
 }
 
 //Evaluate to retry or not
-func canRetry(retryMax *int) (retryBool bool) {
+func canRetry(retryMax *uint) (retryBool bool) {
 	if retryMax != nil && *retryMax == retry {return}
 	retry++
 	return true
@@ -155,7 +155,7 @@ func retrySleep() {
 }
 
 //Public ABC Download function
-func Download(urlRaw, file, byteRange, agent *string, timeout *time.Duration, retryMax, flags *int) (err error, totalSize int64, acceptRanges string) {
+func Download(urlRaw, file, byteRange, agent *string, timeout *time.Duration, retryMax *uint, flags *uint8) (err error, totalSize int64, acceptRanges string) {
 
 	//Conditional initializations
 	if file == nil {noDownload = true}
@@ -197,7 +197,7 @@ func Download(urlRaw, file, byteRange, agent *string, timeout *time.Duration, re
 				if retry == 0 {
 					os.Stdout.WriteString("Downloading "+*urlRaw+" to "+*file+"...\n")
 				} else {
-					os.Stdout.WriteString("Retry "+strconv.Itoa(retry)+"...\n")
+					os.Stdout.WriteString("Retry "+strconv.FormatUint(uint64(retry), 10)+"...\n")
 					retrySleep()
 				}
 			}
@@ -252,7 +252,7 @@ func Download(urlRaw, file, byteRange, agent *string, timeout *time.Duration, re
 		if retry > 0 && !firstTry {
 			if !noDebug {
 				if !noProgress {os.Stdout.WriteString("\n")}
-				os.Stdout.WriteString("Retry "+strconv.Itoa(retry)+"...\n")
+				os.Stdout.WriteString("Retry "+strconv.FormatUint(uint64(retry), 10)+"...\n")
 			}
 
 			oFile.Close()

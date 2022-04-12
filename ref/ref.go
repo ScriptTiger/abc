@@ -33,8 +33,8 @@ func main() {
 		byteRange *string
 		agent *string
 		timeout *time.Duration
-		retry *int
-		flags *int
+		retry *uint
+		flags *uint8
 		err error
 	)
 
@@ -72,18 +72,18 @@ func main() {
 					} else {help(-2)}
 					continue
 				case "nodebug":
-					if flags == nil {flags = new(int)}
-					if 1&*flags == 0 {*flags += 1
+					if flags == nil {flags = new(uint8)}
+					if 1&*flags == 0 {*flags |= 1
 					} else {help(-2)}
 					continue
 				case "noprogress":
-					if flags == nil {flags = new(int)}
-					if 2&*flags == 0 {*flags += 2
+					if flags == nil {flags = new(uint8)}
+					if 2&*flags == 0 {*flags |= 2
 					} else {help(-2)}
 					continue
 				case "nokeep":
-					if flags == nil {flags = new(int)}
-					if 4&*flags == 0 {*flags += 4
+					if flags == nil {flags = new(uint8)}
+					if 4&*flags == 0 {*flags |= 4
 					} else {help(-2)}
 					continue
 				case "o":
@@ -94,9 +94,10 @@ func main() {
 				case "retry":
 					i++
 					if retry == nil {
-						retry = new(int)
-						*retry, err = strconv.Atoi(os.Args[i])
+						retry = new(uint)
+						r, err := strconv.ParseUint(os.Args[i], 10, 32)
 						if err != nil {help(-2)}
+						*retry = uint(r)
 					} else {help(-2)}
 					continue
 				default:
