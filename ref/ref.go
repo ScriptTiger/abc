@@ -108,7 +108,7 @@ func main() {
 		} else {help(-2)}
 	}
 
-	err, totalSize, acceptRanges := abc.Download(urlRaw, file, byteRange, agent, timeout, retry, flags)
+	totalSize, acceptRanges, err := abc.Download(urlRaw, file, byteRange, agent, timeout, retry, flags)
 	if err == nil {
 		if file == nil {
 			os.Stdout.WriteString(

@@ -155,7 +155,7 @@ func retrySleep() {
 }
 
 //Public ABC Download function
-func Download(urlRaw, file, byteRange, agent *string, timeout *time.Duration, retryMax *uint, flags *uint8) (err error, totalSize int64, acceptRanges string) {
+func Download(urlRaw, file, byteRange, agent *string, timeout *time.Duration, retryMax *uint, flags *uint8) (totalSize int64, acceptRanges string, err error) {
 
 	//Conditional initializations
 	if file == nil {noDownload = true}
