@@ -115,7 +115,7 @@ func filePrep(file *string) (err error) {
 		}
 	} else {err = nil}
 	//Create directory structure as needed
-	os.MkdirAll(filepath.Dir(*file), 644)
+	os.MkdirAll(filepath.Dir(*file), 0644)
 	return
 }
 
@@ -297,7 +297,7 @@ func Download(urlRaw, file, byteRange, agent *string, timeout *time.Duration, re
 		} else {fileFlags = os.O_CREATE | os.O_WRONLY}
 
 		//Initialize oFile
-		oFile, err = os.OpenFile(*file, fileFlags, 644)
+		oFile, err = os.OpenFile(*file, fileFlags, 0644)
 		if err != nil {
 			debug(err)
 			return
