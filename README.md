@@ -1,4 +1,4 @@
-[![Say Thanks!](https://img.shields.io/badge/Say%20Thanks-!-1EAEDB.svg)](https://saythanks.io/to/thescripttiger%40gmail.com)
+[![Say Thanks!](https://img.shields.io/badge/Say%20Thanks-!-1EAEDB.svg)](https://docs.google.com/forms/d/e/1FAIpQLSfBEe5B_zo69OBk19l3hzvBmz3cOV6ol1ufjh0ER1q3-xd2Rg/viewform)
 
 # ABC: Arbitrary Byte Collector  
 ABC is a package for Go which can act as either a standard HTTP sequential downloader supporting streaming playback while downloading for supported "Web" videos (with supported players, such as VLC, MPlayer, ffplay, MPC-HC, etc.) and resume capabilities or as an arbitrary byte collector to download only arbitrary portions of files by manipulating the HTTP Range header as needed. ABC can easily be imported into any Go project and be implemented as Go routines to download arbitrary portions of files concurrently. The reference implementation of ABC launches a single instance of ABC, but can also be easily scripted for concurrency.
