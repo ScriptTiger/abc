@@ -26,6 +26,8 @@ set GOOS=linux
 set file=%app%_%GOOS%_%GOARCH%
 call :Build_OS
 
+if %GOARCH% == 386 exit /b
+
 set GOOS=darwin
 set file=%app%_%GOOS%_%GOARCH%.app
 call :Build_OS

@@ -73,17 +73,17 @@ func main() {
 					continue
 				case "nodebug":
 					if flags == nil {flags = new(uint8)}
-					if 1&*flags == 0 {*flags |= 1
+					if abc.NODEBUG&*flags == 0 {*flags |= abc.NODEBUG
 					} else {help(-2)}
 					continue
 				case "noprogress":
 					if flags == nil {flags = new(uint8)}
-					if 2&*flags == 0 {*flags |= 2
+					if abc.NOPROGRESS&*flags == 0 {*flags |= abc.NOPROGRESS
 					} else {help(-2)}
 					continue
 				case "nokeep":
 					if flags == nil {flags = new(uint8)}
-					if 4&*flags == 0 {*flags |= 4
+					if abc.NOKEEP&*flags == 0 {*flags |= abc.NOKEEP
 					} else {help(-2)}
 					continue
 				case "o":

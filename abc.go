@@ -154,15 +154,20 @@ func retrySleep() {
 	if retryTimer.Minutes() < 5 {retryTimer *= 2}
 }
 
+// Flag constants
+const NODEBUG = 1
+const NOPROGRESS = 2
+const NOKEEP = 4
+
 //Public ABC Download function
 func Download(urlRaw, file, byteRange, agent *string, timeout *time.Duration, retryMax *uint, flags *uint8) (totalSize int64, acceptRanges string, err error) {
 
 	//Conditional initializations
 	if file == nil {noDownload = true}
 	if flags != nil {
-		if 1&*flags != 0 {noDebug = true}
-		if 2&*flags != 0 {noProgress = true}
-		if 4&*flags != 0 {noKeep = true}
+		if NODEBUG&*flags != 0 {noDebug = true}
+		if NOPROGRESS&*flags != 0 {noProgress = true}
+		if NOKEEP&*flags != 0 {noKeep = true}
 	}
 
 	//Exit now if no URL given
