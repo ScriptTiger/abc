@@ -5,7 +5,14 @@ ABC is a package for Go which can act as either a standard HTTP sequential downl
 
 To import ABC into your project:  
 `go get github.com/ScriptTiger/abc`  
-Then just `import "github.com/ScriptTiger/abc"` and call abc.Download(...) to use. Please refer to the reference implementation for more details on how to integrate ABC into your project.  
+Then just `import "github.com/ScriptTiger/abc"` and call abc.Download(...) to use.
+
+Please refer to the dev package docs and reference implementation for more details and ideas on how to integrate ABC into your project.
+
+Dev package docs:  
+https://pkg.go.dev/github.com/ScriptTiger/abc
+
+Reference implementation:  
 https://github.com/ScriptTiger/abc/blob/main/ref/ref.go
 
 # Reference Implementation
